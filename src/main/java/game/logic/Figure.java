@@ -3,7 +3,7 @@ package game.logic;
 public class Figure {
     private Color color;
     private FigureType type;
-    protected boolean isMoved;
+    private boolean isMoved;
 
     public Figure() {
     }
@@ -48,4 +48,5 @@ public class Figure {
     public void setMoved(boolean moved) {
         isMoved = moved;
     }
+
 }

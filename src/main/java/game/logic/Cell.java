@@ -5,6 +5,7 @@ import java.util.Objects;
 public class Cell {
     private Color color;
     private Figure figure;
+    private boolean isAttacked;
 
     public Cell() {
     }
@@ -27,6 +28,14 @@ public class Cell {
 
     public void setFigure(Figure figure) {
         this.figure = figure;
+    }
+
+    public boolean isAttacked() {
+        return isAttacked;
+    }
+
+    public void setAttacked(boolean attacked) {
+        isAttacked = attacked;
     }
 
     @Override

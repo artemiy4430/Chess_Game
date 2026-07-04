@@ -36,42 +36,4 @@ public class BishopMovement extends Moves {
         return true;
     }
 
-    @Override
-    public List<Coordinates> getAvailableMoves(Coordinates currentPosition) {
-        if (field.getFigure(currentPosition).getType() != FigureType.BISHOP) return null;
-
-        List<Coordinates> availableMoves = new ArrayList<>();
-        Color currentColor = field.getFigure(currentPosition).getColor();
-        int currentX = currentPosition.getCoordinateX();
-        int currentY = currentPosition.getCoordinateY();
-        List<int[]> availableDirections = getDirections(currentColor);
-
-        for (int i = 0; i < availableDirections.size(); i++) {
-            int deltaX = availableDirections.get(i)[0];
-            int deltaY = availableDirections.get(i)[1];
-
-            for (int j = 1; j < field.getSize(); j++) {
-                Coordinates moveCoordinates = new Coordinates(
-                        currentX + deltaX * j,
-                        currentY + deltaY * j
-                );
-
-                if (!field.isWithinBoard(moveCoordinates)) break;
-                Figure figure = field.getFigure(moveCoordinates);
-
-                if (figure != null) {
-                    if (figure.getColor() == currentColor) {
-                    } else {
-                        moveCoordinates.setAttackCoordinate(true);
-                        availableMoves.add(moveCoordinates);
-                    }
-                    break;
-                } else {
-                    availableMoves.add(moveCoordinates);
-                }
-            }
-        }
-        return availableMoves;
-    }
-
 }

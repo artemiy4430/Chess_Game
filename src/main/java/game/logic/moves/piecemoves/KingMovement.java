@@ -1,10 +1,9 @@
 package game.logic.moves.piecemoves;
 
-import game.logic.Color;
-import game.logic.Coordinates;
-import game.logic.Field;
+import game.logic.*;
 import game.logic.moves.Moves;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -44,5 +43,38 @@ public class KingMovement extends Moves {
     @Override
     protected boolean isSliding() {
         return false;
+    }
+
+    @Override
+
+    public List<Coordinates> getAvailableMoves(Coordinates currentPosition) {
+        if (field.getFigure(currentPosition).getType() != FigureType.KING) return null;
+
+        List<Coordinates> availableMoves = new ArrayList<>();
+        Color currentColor = field.getFigure(currentPosition).getColor();
+        int currentX = currentPosition.getCoordinateX();
+        int currentY = currentPosition.getCoordinateY();
+        List<int[]> availableDirections = getDirections(currentColor);
+
+
+        for (int i = 0; i < availableDirections.size(); i++) {
+            int deltaX = availableDirections.get(i)[0];
+            int deltaY = availableDirections.get(i)[1];
+            Coordinates coords = getDirection(deltaX + currentX,
+                    deltaY + currentY);
+            if (!field.isWithinBoard(coords)) continue;
+            Figure figure = field.getFigure(coords);
+
+            if (figure != null) {
+                if (figure.getColor() == currentColor) {
+                } else {
+                    coords.setAttackCoordinate(true);
+                    availableMoves.add(coords);
+                }
+            } else {
+                availableMoves.add(coords);
+            }
+        }
+        return availableMoves;
     }
 }
