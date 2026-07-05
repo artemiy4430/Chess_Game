@@ -66,6 +66,7 @@ public abstract class Moves implements AvailableMoves {
 
                 if (figure != null) {
                     if (figure.getColor() == currentColor) {
+
                     } else {
                         moveCoordinates.setAttackCoordinate(true);
                         availableMoves.add(moveCoordinates);

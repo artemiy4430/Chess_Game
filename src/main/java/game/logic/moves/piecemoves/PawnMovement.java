@@ -76,22 +76,19 @@ public class PawnMovement extends Moves {
                     if (j == 2 && !isStartPosition && isMoved) {
                         break;
                     }
-
                     Coordinates moveCoordinates = new Coordinates(
                             currentPosition.getCoordinateX() + deltaX * j,
                             currentPosition.getCoordinateY() + deltaY * j
                     );
-                    if (!field.isWithinBoard(moveCoordinates)) break;
 
+                    if (!field.isWithinBoard(moveCoordinates)) break;
                     Figure figure = field.getFigure(moveCoordinates);
 
                     if (figure != null) break;
                     availableMoves.add(moveCoordinates);
-
                 }
             }
         }
-
         return availableMoves;
     }
 

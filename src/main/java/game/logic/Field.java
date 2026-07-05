@@ -55,7 +55,8 @@ public class Field {
     }
 
     public Cell getCell(Coordinates coordinates) {
-        if (isWithinBoard(coordinates)) return board.get(coordinates.getCoordinateY()).get(coordinates.getCoordinateX());
+        if (isWithinBoard(coordinates))
+            return board.get(coordinates.getCoordinateY()).get(coordinates.getCoordinateX());
         return null;
     }
 
@@ -75,8 +76,9 @@ public class Field {
 
     public void removeFigure(Coordinates coordinates) {
         Cell cell = getCell(coordinates);
+        Figure figure = cell.getFigure();
 
-        if (cell.getFigure() != null) {
+        if (figure != null) {
             cell.setFigure(null);
         }
     }
