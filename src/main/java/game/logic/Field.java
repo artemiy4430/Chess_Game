@@ -73,6 +73,15 @@ public class Field {
         }
     }
 
+    public void setFigure(Figure figure, Coordinates newCoordinates) { // overloading
+        if (!isWithinBoard(newCoordinates) || figure == null) return;
+        Cell newCell = getCell(newCoordinates);
+
+        if (newCell.getFigure() == null) {
+            newCell.setFigure(figure);
+        }
+    }
+
 
     public void removeFigure(Coordinates coordinates) {
         Cell cell = getCell(coordinates);
