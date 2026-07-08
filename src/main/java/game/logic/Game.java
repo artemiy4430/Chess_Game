@@ -13,8 +13,8 @@ public class Game {
     private GameEventListener listener;
     private Color currentTurn;
     private boolean isLocked = false;
-    private List<Coordinates> currentAvailableMoves; // ?
-    private Coordinates lockedCheckerCoordinates;
+    private List<Coordinates> currentAvailableMoves;
+    private Coordinates lockedFigureCoordinates;
     private boolean isQueenPromoted;
     private MatchManager matchManager;
     private boolean isUnderCheck; //
@@ -29,6 +29,39 @@ public class Game {
     }
 
     public void processSpace(Cursor cursor) {
+        Coordinates currentCursorCoordinates = new Coordinates(cursor.getCursorCoordinateX(), cursor.getCursorCoordinateY());
+        Figure currentFigure = field.getFigure(currentCursorCoordinates);
+
+        if (!isLocked) {
+            if (currentFigure != null && currentFigure.getColor() == currentTurn && lockedFigureCoordinates == null) {
+                List<Coordinates> figureAvailableMoves = filterMoves(currentCursorCoordinates);
+
+                if (!figureAvailableMoves.isEmpty()) {
+                    isLocked = true;
+                    this.lockedFigureCoordinates = currentCursorCoordinates;
+                    currentAvailableMoves.addAll(figureAvailableMoves);
+                    listener.onBoardChanged(field);
+                }
+
+            }
+        } else {
+            if (lockedFigureCoordinates.equals(currentCursorCoordinates)) {
+                unlock();
+                return;
+            }
+            Figure movingFigure = field.getFigure(lockedFigureCoordinates);
+
+            if (movingFigure != null && currentAvailableMoves.contains(currentCursorCoordinates)) {
+                if (movingFigure.getType() == FigureType.KING
+                        && lockedFigureCoordinates.getCoordinateY() == currentCursorCoordinates.getCoordinateY()
+                        && Math.abs(lockedFigureCoordinates.getCoordinateX() - currentCursorCoordinates.getCoordinateX()) > 2) {
+                    castle(currentCursorCoordinates);
+                } else {
+                    move(lockedFigureCoordinates, currentCursorCoordinates);
+                }
+                unlock();
+            }
+        }
     }
 
     public void unlock() {
@@ -71,6 +104,12 @@ public class Game {
     }
 
     private void defaultMove(Coordinates startCoordinates, Coordinates targetCoordinates) {
+        Figure currentFigure = field.getFigure(startCoordinates);
+
+        if (!currentFigure.isMoved()) {
+            currentFigure.setMoved(true);
+        }
+
         field.setFigure(startCoordinates, targetCoordinates);
         //matchManager.promoteToQueenCheck();
         // zamedlit potom
@@ -88,7 +127,6 @@ public class Game {
 
     private void processTargetCells(Color currentTurn) { // dlya korolya chtobi smotret chto pod boyem,
         // potom v konce hoda ono budet ochischatsa
-
 
         ////TODO: написать метод getKing(Color turn) + , boolean isKingAttacked(), вызывать последний в конуе енд терн и в методе processSpace не давать залочится ни на одной фигуре кроме короля(или тем которая перекрыает) если true
 
@@ -163,11 +201,12 @@ public class Game {
         return isUnderCheck;
     }
 
-    private List<Coordinates> filterMoves(Coordinates coordinates) {
+    private List<Coordinates> filterMoves(Coordinates coordinates) { // вызывать всегда когда король под шахом если фигура король то всегда фильтровать
         Figure figure = field.getFigure(coordinates);
         List<Coordinates> figureAvailableMoves = getMovementType(figure).getAvailableMoves(coordinates);
         List<Coordinates> filteredMoves = new ArrayList<>();
         Color currentColor = figure.getColor();
+        boolean isKing = figure.getType().equals(FigureType.KING);
 
         for (int i = 0; i < figureAvailableMoves.size(); i++) {
             Coordinates target = figureAvailableMoves.get(i);
@@ -189,6 +228,27 @@ public class Game {
             }
         }
 
+        if (isKing) {
+            int kingY = coordinates.getCoordinateY();
+            int[] rookXPositions = {7, 0};
+
+            for (int rookX : rookXPositions) {
+
+                Coordinates rookCoords = new Coordinates(rookX, kingY);
+                Figure currentFigure = field.getFigure(rookCoords);
+
+                if (currentFigure != null && currentFigure.getColor() == currentColor && currentFigure.getType() == FigureType.ROOK) {
+
+                    if (isValidCastle(rookCoords)) {
+                        if (rookX == 7) {
+                            filteredMoves.add(new Coordinates(coordinates.getCoordinateX() + 2, kingY));
+                        } else {
+                            filteredMoves.add(new Coordinates(coordinates.getCoordinateX() - 2, kingY));
+                        }
+                    }
+                }
+            }
+        }
         return filteredMoves;
     }
 
@@ -206,9 +266,11 @@ public class Game {
                     if (figureAvailableMoves != null && !figureAvailableMoves.isEmpty()) {
                         if (figure.getType() == FigureType.PAWN) {
                             int index = figureAvailableMoves.indexOf(kingCoordinates);
+
                             if (index > -1 && figureAvailableMoves.get(index).isAttackCoordinate()) {
                                 return true;
                             }
+
                         } else if (figureAvailableMoves.contains(kingCoordinates)) return true;
                     }
                 }
@@ -222,7 +284,7 @@ public class Game {
         // между ними нету фигур
         if (isUnderCheck) return false;
         Coordinates kingCoordinates = getKing(currentTurn);
-        int distance = Math.abs(kingCoordinates.getCoordinateX() - selectedRook.getCoordinateX());
+        int distance = getDistanceWithKing(selectedRook);
         boolean isShortCastle = distance < 4;
 
         if (!field.getFigure(kingCoordinates).isMoved() && !field.getFigure(selectedRook).isMoved()) {
@@ -241,7 +303,44 @@ public class Game {
         return false;
     }
 
-    ////TODO: castle(Coordinates selectedRook) ...
+    private int getDistanceWithKing(Coordinates selectedFigure) {
+        Coordinates kingCoordinates = getKing(currentTurn);
+
+        if (selectedFigure.getCoordinateY() != kingCoordinates.getCoordinateY()) return -1;
+
+        return Math.abs(kingCoordinates.getCoordinateX() - selectedFigure.getCoordinateX());
+    }
+
+    /// /TODO: castle(Coordinates selectedRook) ...
+
+    private void castle(Coordinates kingLandingCoordinates) {
+        Coordinates selectedRook = getCastlingRook(kingLandingCoordinates);
+
+        if (!isValidCastle(selectedRook)) return;
+        Coordinates kingCoordinates = getKing(currentTurn);
+        int distance = getDistanceWithKing(selectedRook);
+        boolean isShortCastle = distance < 4;
+
+        if (isShortCastle) {
+            field.setFigure(kingCoordinates, new Coordinates(kingCoordinates.getCoordinateX() + 2, kingCoordinates.getCoordinateY()));
+            field.setFigure(selectedRook, new Coordinates(selectedRook.getCoordinateX() - 2, selectedRook.getCoordinateY()));
+        } else {
+            field.setFigure(kingCoordinates, new Coordinates(kingCoordinates.getCoordinateX() - 2, kingCoordinates.getCoordinateY()));
+            field.setFigure(selectedRook, new Coordinates(selectedRook.getCoordinateX() + 2, selectedRook.getCoordinateY()));
+        }
+    }
+
+
+    private Coordinates getCastlingRook(Coordinates coordinates) {
+        Coordinates kingCoordinates = getKing(currentTurn);
+
+        if (coordinates.getCoordinateY() != kingCoordinates.getCoordinateY()) return null;
+        boolean isShortCastle = getDistanceWithKing(coordinates) > 0;
+
+        return (isShortCastle) ? new Coordinates(7, kingCoordinates.getCoordinateY())
+                : new Coordinates(0, kingCoordinates.getCoordinateY());
+    }
+
 }
 
 
