@@ -4,8 +4,9 @@ import game.logic.moves.Moves;
 import game.logic.moves.piecemoves.*;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.IntStream;
 
 public class MatchManager {
@@ -13,11 +14,16 @@ public class MatchManager {
     private Field field;
     private Color currentTurn;
     private boolean isUnderCheck;
+    private Color winner;
+    private boolean isTie;
+    private boolean isStaleMate;
 
 
     public MatchManager(Field field) {
         this.field = field;
     }
+
+
 
     public Field getField() {
         return field;
@@ -28,17 +34,27 @@ public class MatchManager {
     }
 
 
-    // public boolean endGameCheck() {}
+     public boolean endGameCheck() {
+        return checkWin() || checkTie();
+     }
+
+//    public Color setWinner() {
+//        return this.currentTurn == Color.WHITE ? Color.BLACK : Color.WHITE;
+//    }
 
     public Color getWinner() {
-
+        return winner;
     }
-
 
     private boolean checkWin() { // getWinner is called if checkWin = true
+        if (isUnderCheck && !isTurnMovable()) {
+            setWinner(currentTurn);
+            return true;
+        }
+        return false;
     }
 
-    private boolean isTurnMovable() { // spisal
+    private boolean isTurnMovable() {
 
         return IntStream.range(0, field.getSize())
                 .mapToObj(i -> IntStream.range(0, field.getSize())
@@ -47,7 +63,7 @@ public class MatchManager {
                 .anyMatch(coords -> {
                     Figure figure = field.getFigure(coords);
 
-                    if (figure != null && figure.getColor() == getCurrentTurn()) {
+                    if (figure != null && figure.getColor() == this.currentTurn) {
                         List<Coordinates> legalMoves = filterMoves(coords);
                         return !legalMoves.isEmpty();
                     }
@@ -56,14 +72,105 @@ public class MatchManager {
                 });
     }
 
-    public boolean checkTie() {
-
+    private boolean checkTie() {
+        if (!isUnderCheck) {
+            if (isTieCheck()) {
+                setTie(true);
+            } else if (isStaleMate) {
+                setStaleMate(true);
+            }
+        }
+        return false;
     }
 
 
-    private boolean isTie() {}// if there are certain pieces left on the board
+    private boolean isTieCheck() { // if there are certain pieces left on the board два короля+, король слон против короля+,
+        // король конь против короля+, король и два коня против короля+, два разнопольных слона+
+        return isTieByOneBishop() || isTieByTwoBishopsSameCellColor() || isTieByTwoKnights() || isTieByTwoKings();
 
-    private boolean isStaleMate() {} // if staleMate
+    }
+
+    private boolean isTieByTwoKings() {
+        return IntStream.range(0, field.getSize())
+
+                .mapToObj(i -> IntStream.range(0, field.getSize())
+                        .mapToObj(j -> new Coordinates(j, i)).map(coordinates -> {
+                            Figure figure = field.getFigure(coordinates);
+                            if (figure != null) return figure;
+                            return null;
+                        })).flatMap(stream -> stream)
+                .anyMatch(x -> x != null && x.getType() != FigureType.KING);
+    }
+
+
+    private boolean isTieByTwoBishopsSameCellColor() { // два однопольных слона
+        AtomicBoolean isWhiteAdded = new AtomicBoolean(false);
+        AtomicBoolean isBlackAdded = new AtomicBoolean(false);
+
+        return IntStream.range(0, field.getSize())
+                .mapToObj(i -> IntStream.range(0, field.getSize())
+                        .mapToObj(j -> new Coordinates(j, i)).map(coordinates -> {
+                            Cell cell = new Cell();
+                            Figure figure = cell.getFigure();
+
+                            if (figure != null && figure.getType() == FigureType.BISHOP) {
+                                if (figure.getColor() == Color.WHITE && !isWhiteAdded.get()) {
+                                    isWhiteAdded.set(true);
+                                    return cell;
+                                } else if (figure.getColor() == Color.BLACK && !isBlackAdded.get()) {
+                                    isBlackAdded.set(true);
+                                    return cell;
+                                }
+                            }
+                            return null;
+                        })
+
+                ).flatMap(stream -> stream)
+                .filter(x -> x != null && x.getColor() == Color.WHITE)
+                .count() == 1;
+    }
+
+    private boolean isTieByOneBishop() {
+        return IntStream.range(0, field.getSize())
+                .mapToObj(i -> IntStream.range(0, field.getSize())
+                        .mapToObj(j -> new Coordinates(j, i)).map(coordinates -> {
+                            Figure figure = field.getFigure(coordinates);
+
+                            if (figure != null && (figure.getType() == FigureType.KING || figure.getType() == FigureType.BISHOP)) {
+                                return figure;
+                            }
+                            return null;
+                        })).flatMap(stream -> stream)
+                .filter(x -> x != null && x.getType() == FigureType.BISHOP).count() == 1;
+
+    }
+
+    private boolean isTieByTwoKnights() {
+        return IntStream.range(0, field.getSize())
+                .mapToObj(i -> IntStream.range(0, field.getSize())
+                        .mapToObj(j -> new Coordinates(j, i)).map(coordinates -> {
+                            Figure figure = field.getFigure(coordinates);
+
+                            if (figure != null && (figure.getType() == FigureType.KING || figure.getType() == FigureType.KNIGHT)) {
+                                return figure;
+                            }
+                            return null;
+                        })).flatMap(stream -> stream)
+                .filter(x -> x != null && x.getType() == FigureType.KNIGHT).count() > 2;
+    }
+
+    private boolean isStaleMateCheck() {
+        return IntStream.range(0, field.getSize())
+                .mapToObj(i -> IntStream.range(0, field.getSize())
+                        .mapToObj(j -> new Coordinates(j, i))
+                        .map(coordinates -> {
+                            Figure figure = field.getFigure(coordinates);
+                            if (figure != null) {
+                                return filterMoves(coordinates).size();
+                            }
+                            return 0;
+                        })).flatMap(stream -> stream).noneMatch(x -> x > 0);
+    } // if staleMate
 
 
     public boolean isValidMove(Coordinates startCoords, Coordinates endCoords) {
@@ -275,8 +382,29 @@ public class MatchManager {
         return currentTurn;
     }
 
+
     public void setCurrentTurn(Color currentTurn) {
         this.currentTurn = currentTurn;
+    }
+
+    public boolean isTie() {
+        return isTie;
+    }
+
+    public boolean isStaleMate() {
+        return isStaleMate;
+    }
+
+    public void setWinner(Color winner) {
+        this.winner = winner;
+    }
+
+    public void setTie(boolean tie) {
+        isTie = tie;
+    }
+
+    public void setStaleMate(boolean staleMate) {
+        isStaleMate = staleMate;
     }
 
     //endGameCheck, getWinner, checkWin,

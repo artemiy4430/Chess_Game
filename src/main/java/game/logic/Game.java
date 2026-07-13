@@ -7,27 +7,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Game {
-
+///todo: везде посоздовать глобальные переменные где есть getField
+///
     private GameEventListener listener;
     private boolean isLocked = false;
     private List<Coordinates> currentAvailableMoves;
     private Coordinates lockedFigureCoordinates;
     private boolean isQueenPromoted;
     private MatchManager matchManager;
-    private Field field = getField();
 
     public Game(MatchManager matchManager) {
         this.matchManager = matchManager;
-        currentAvailableMoves = new ArrayList<>();
+        this.currentAvailableMoves = new ArrayList<>();
     }
 
     public void setListener(GameEventListener listener) {
         this.listener = listener;
-    } // -
+    }
 
-    public void processSpace(Cursor cursor) { // -
+    public void processSpace(Cursor cursor) {
         Coordinates currentCursorCoordinates = new Coordinates(cursor.getCursorCoordinateX(), cursor.getCursorCoordinateY());
-        Figure currentFigure = field.getFigure(currentCursorCoordinates);
+        Figure currentFigure = getField().getFigure(currentCursorCoordinates);
 
         if (!isLocked) {
             if (currentFigure != null && currentFigure.getColor() == getCurrentTurn() && lockedFigureCoordinates == null) {
@@ -37,7 +37,7 @@ public class Game {
                     isLocked = true;
                     this.lockedFigureCoordinates = currentCursorCoordinates;
                     currentAvailableMoves.addAll(figureAvailableMoves);
-                    listener.onBoardChanged(field);
+                    listener.onBoardChanged(getField());
                 }
 
             }
@@ -46,7 +46,7 @@ public class Game {
                 unlock();
                 return;
             }
-            Figure movingFigure = field.getFigure(lockedFigureCoordinates);
+            Figure movingFigure = getField().getFigure(lockedFigureCoordinates);
 
             if (movingFigure != null && currentAvailableMoves.contains(currentCursorCoordinates)) {
                 if (movingFigure.getType() == FigureType.KING
@@ -61,13 +61,13 @@ public class Game {
         }
     }
 
-    public void unlock() { // -
+    public void unlock() {
         isLocked = false;
         this.lockedFigureCoordinates = null;
-        listener.onBoardChanged(field);
+        listener.onBoardChanged(getField());
     }
 
-    private void endTurn() { // -
+    private void endTurn() {
         matchManager.clearTargetCells();
         matchManager.processTargetCells(getCurrentTurn());
         Color nextTurnColor = (this.getCurrentTurn() == Color.WHITE) ? Color.BLACK
@@ -78,38 +78,38 @@ public class Game {
     }
 
 
-    public void move(Coordinates startCoordinates, Coordinates targetCoordinates) { // -
-        Figure currentFigure = field.getFigure(startCoordinates);
+    public void move(Coordinates startCoordinates, Coordinates targetCoordinates) {
+        Figure currentFigure = getField().getFigure(startCoordinates);
 
         if (!matchManager.isValidMove(startCoordinates, targetCoordinates) && currentFigure == null) return;
 
-        if (field.getFigure(targetCoordinates) == null) {
+        if (getField().getFigure(targetCoordinates) == null) {
             defaultMove(startCoordinates, targetCoordinates);
         } else {
             capture(startCoordinates, targetCoordinates);
         }
 
-        listener.onBoardChanged(field);
+        listener.onBoardChanged(getField());
         endTurn();
     }
 
-    private void capture(Coordinates startCoordinates, Coordinates targetCoordinates) { // -
-        Figure targetFigure = field.getFigure(targetCoordinates);
+    private void capture(Coordinates startCoordinates, Coordinates targetCoordinates) {
+        Figure targetFigure = getField().getFigure(targetCoordinates);
 
         if (targetFigure != null) {
-            field.removeFigure(targetCoordinates);
+            getField().removeFigure(targetCoordinates);
             defaultMove(startCoordinates, targetCoordinates);
         }
     }
 
-    private void defaultMove(Coordinates startCoordinates, Coordinates targetCoordinates) { // -
-        Figure currentFigure = field.getFigure(startCoordinates);
+    private void defaultMove(Coordinates startCoordinates, Coordinates targetCoordinates) {
+        Figure currentFigure = getField().getFigure(startCoordinates);
 
         if (!currentFigure.isMoved()) {
             currentFigure.setMoved(true);
         }
 
-        field.setFigure(startCoordinates, targetCoordinates);
+        getField().setFigure(startCoordinates, targetCoordinates);
         //matchManager.promoteToQueenCheck();
         // zamedlit potom
     }
@@ -123,30 +123,53 @@ public class Game {
         boolean isShortCastle = distance < 4;
 
         if (isShortCastle) {
-            field.setFigure(kingCoordinates, new Coordinates(kingCoordinates.getCoordinateX() + 2, kingCoordinates.getCoordinateY()));
-            field.setFigure(selectedRook, new Coordinates(selectedRook.getCoordinateX() - 2, selectedRook.getCoordinateY()));
+            getField().setFigure(kingCoordinates, new Coordinates(kingCoordinates.getCoordinateX() + 2, kingCoordinates.getCoordinateY()));
+            getField().setFigure(selectedRook, new Coordinates(selectedRook.getCoordinateX() - 2, selectedRook.getCoordinateY()));
         } else {
-            field.setFigure(kingCoordinates, new Coordinates(kingCoordinates.getCoordinateX() - 2, kingCoordinates.getCoordinateY()));
-            field.setFigure(selectedRook, new Coordinates(selectedRook.getCoordinateX() + 3, selectedRook.getCoordinateY()));
+            getField().setFigure(kingCoordinates, new Coordinates(kingCoordinates.getCoordinateX() - 2, kingCoordinates.getCoordinateY()));
+            getField().setFigure(selectedRook, new Coordinates(selectedRook.getCoordinateX() + 3, selectedRook.getCoordinateY()));
         }
     }
 
-    private MatchManager getMatchManager() {
+    public MatchManager getMatchManager() {
         return matchManager;
     }
 
-    private Field getField() {
-        return matchManager.getField();
+    public Field getField() {
+        return this.matchManager.getField();
     }
 
     public void setMatchManager(MatchManager matchManager) {
         this.matchManager = matchManager;
     }
 
-    private Color getCurrentTurn() {
+    public Color getCurrentTurn() {
         return matchManager.getCurrentTurn();
     }
 
+    public Coordinates getLockedFigureCoordinates() {
+        return lockedFigureCoordinates;
+    }
+
+    public void setLockedFigureCoordinates(Coordinates lockedFigureCoordinates) {
+        this.lockedFigureCoordinates = lockedFigureCoordinates;
+    }
+
+    public boolean isLocked() {
+        return isLocked;
+    }
+
+    public void setLocked(boolean locked) {
+        isLocked = locked;
+    }
+
+    public List<Coordinates> getCurrentAvailableMoves() {
+        return currentAvailableMoves;
+    }
+
+    public void setCurrentAvailableMoves(List<Coordinates> currentAvailableMoves) {
+        this.currentAvailableMoves = currentAvailableMoves;
+    }
 }
 
 
