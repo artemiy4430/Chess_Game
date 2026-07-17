@@ -1,5 +1,7 @@
 package game.logic;
 
+import java.util.Objects;
+
 public class Coordinates {
 
     private int coordinateX;
@@ -34,5 +36,18 @@ public class Coordinates {
 
     public void setAttackCoordinate(boolean attackCoordinate) {
         isAttackCoordinate = attackCoordinate;
+    }
+
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Coordinates that = (Coordinates) o;
+        return coordinateX == that.coordinateX && coordinateY == that.coordinateY;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(coordinateX, coordinateY);
     }
 }

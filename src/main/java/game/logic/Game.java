@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Game {
-///todo: везде посоздовать глобальные переменные где есть getField
-///
+    /// todo: везде посоздовать глобальные переменные где есть getField
+    ///
     private GameEventListener listener;
     private boolean isLocked = false;
     private List<Coordinates> currentAvailableMoves;
@@ -46,9 +46,10 @@ public class Game {
                 unlock();
                 return;
             }
-            Figure movingFigure = getField().getFigure(lockedFigureCoordinates);
 
-            if (movingFigure != null && currentAvailableMoves.contains(currentCursorCoordinates)) {
+            Figure movingFigure = getField().getFigure(lockedFigureCoordinates);
+            if (movingFigure != null) {
+                if (!currentAvailableMoves.contains(currentCursorCoordinates)) return;
                 if (movingFigure.getType() == FigureType.KING
                         && lockedFigureCoordinates.getCoordinateY() == currentCursorCoordinates.getCoordinateY()
                         && Math.abs(lockedFigureCoordinates.getCoordinateX() - currentCursorCoordinates.getCoordinateX()) > 2) {
@@ -58,12 +59,15 @@ public class Game {
                 }
                 unlock();
             }
+
         }
     }
+
 
     public void unlock() {
         isLocked = false;
         this.lockedFigureCoordinates = null;
+        this.currentAvailableMoves.clear();
         listener.onBoardChanged(getField());
     }
 
@@ -72,7 +76,7 @@ public class Game {
         matchManager.processTargetCells(getCurrentTurn());
         Color nextTurnColor = (this.getCurrentTurn() == Color.WHITE) ? Color.BLACK
                 : Color.WHITE;
-       matchManager.isKingAttacked((getCurrentTurn() == Color.WHITE) ? Color.BLACK : Color.WHITE);
+        matchManager.isKingAttacked((getCurrentTurn() == Color.WHITE) ? Color.BLACK : Color.WHITE);
         // matchManaget.gameOverCheck()
         matchManager.setCurrentTurn(nextTurnColor);
     }
@@ -110,7 +114,7 @@ public class Game {
         }
 
         getField().setFigure(startCoordinates, targetCoordinates);
-        //matchManager.promoteToQueenCheck();
+        matchManager.promoteToQueenCheck(targetCoordinates);
         // zamedlit potom
     }
 
@@ -172,8 +176,4 @@ public class Game {
     }
 }
 
-
-// if the method is called under certain figure where the isMoved = false, it mustr be set true;
-//setGameEventListener, processSpace, unlock,
-// actionCheck(), endTurn(), moveAbilityCheck,
-// checkAttackOpportunity()?, move, capture, defaultMove, isValidMove, captureCheck,
+//TODO: fix castling, endGameConditios, en-passant(vzyatie na prohode)

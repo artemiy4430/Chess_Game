@@ -13,6 +13,6 @@ public class UI {
     }
 
     public void redraw(Cursor cursor) {
-
+        table.drawTable(cursor, game);
     }
 }

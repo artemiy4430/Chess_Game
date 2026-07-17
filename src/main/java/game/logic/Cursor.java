@@ -47,4 +47,11 @@ public class Cursor {
         cursorEventListener.onCursorMoved(cursorCoordinateX, cursorCoordinateY);
     }
 
+    public void setCursorCoordinateX(int cursorCoordinateX) {
+        this.cursorCoordinateX = cursorCoordinateX;
+    }
+
+    public void setCursorCoordinateY(int cursorCoordinateY) {
+        this.cursorCoordinateY = cursorCoordinateY;
+    }
 }

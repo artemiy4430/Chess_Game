@@ -49,4 +49,8 @@ public class Figure {
         isMoved = moved;
     }
 
+    public void promoteToQueen() {
+        setType(FigureType.QUEEN);
+    }
+
 }

@@ -17,13 +17,11 @@ public class MatchManager {
     private Color winner;
     private boolean isTie;
     private boolean isStaleMate;
-
+    private boolean isQueenPromoted;
 
     public MatchManager(Field field) {
         this.field = field;
     }
-
-
 
     public Field getField() {
         return field;
@@ -274,9 +272,10 @@ public class MatchManager {
             }
             field.setFigure(coordinates, target);
 
-            if (!isKingUnderCheck(currentColor)) {
+            if (!isKingUnderCheck(getOppositeColor(currentColor))) {
                 filteredMoves.add(target);
             }
+
             field.setFigure(target, coordinates);
 
             if (isAttack) {
@@ -335,6 +334,10 @@ public class MatchManager {
         return false;
     }
 
+    private Color getOppositeColor(Color color) {
+        return (color == Color.WHITE) ? Color.BLACK : Color.WHITE;
+    }
+
 
     public boolean isValidCastle(Coordinates selectedRook) { // если король не дыигался + ладья которая выбрана для ракировки так же не сдвинута +
         // между ними нету фигур
@@ -378,7 +381,19 @@ public class MatchManager {
                 : new Coordinates(0, kingCoordinates.getCoordinateY());
     }
 
-    public Color getCurrentTurn() {
+    void promoteToQueenCheck(Coordinates coords) {
+        Figure figure = field.getFigure(coords);
+        if (figure == null || figure.getType() != FigureType.PAWN) return;
+
+        if ((figure.getColor() != Color.BLACK && coords.getCoordinateY() == 0) ||
+                (figure.getColor() != Color.WHITE && coords.getCoordinateY() == 7)) {  //- ???
+            figure.promoteToQueen();
+          //  isQueenPromoted = true; for move logging
+        }
+    }
+
+
+            public Color getCurrentTurn() {
         return currentTurn;
     }
 
@@ -406,6 +421,8 @@ public class MatchManager {
     public void setStaleMate(boolean staleMate) {
         isStaleMate = staleMate;
     }
+
+
 
     //endGameCheck, getWinner, checkWin,
     // checkTie(staleMate or Tie(два короля или король слон против короля,

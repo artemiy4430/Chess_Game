@@ -15,7 +15,8 @@ public class Field {
 
     public Field() {
         this.size = 8;
-        generate();
+         generate();
+       // customFigureSet();
     }
 
     public int getSize() {
@@ -100,6 +101,19 @@ public class Field {
                                 return;
                             assignFigure(coordinates);
                         }));
+    }
+
+    private void customFigureSet() {
+        fillWithCells();
+        Figure figure = new Figure(Color.WHITE, FigureType.PAWN);
+        getCell(new Coordinates(0, 1)).setFigure(figure);
+       // assignFigure();
+
+        // generate();
+        // setFigure(new Coordinates(3, 6), new Coordinates(3, 4));
+        // removeFigure(new Coordinates(4, 1));
+        // setFigure(new Coordinates(3 , 1), new Coordinates(3 , 3));
+        // setFigure(new Coordinates(2 , 7), new Coordinates(4 , 3));
     }
 
     private void assignFigure(Coordinates coordinates) {
