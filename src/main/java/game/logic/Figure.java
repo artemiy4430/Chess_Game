@@ -1,9 +1,13 @@
 package game.logic;
 
+import java.util.Objects;
+
 public class Figure {
     private Color color;
     private FigureType type;
     private boolean isMoved;
+    private int moveCount;
+    private boolean isLastMoved;
 
     public Figure() {
     }
@@ -12,6 +16,8 @@ public class Figure {
         this.color = color;
         this.type = type;
         isMoved = false;
+        moveCount = 0;
+        isLastMoved = false;
     }
 
     public Color getColor() {
@@ -30,7 +36,7 @@ public class Figure {
         this.type = type;
     }
 
-    private int getPrice() {
+    public int getPrice() {
         return switch (type) {
             case PAWN -> 1;
             case ROOK -> 5;
@@ -53,4 +59,44 @@ public class Figure {
         setType(FigureType.QUEEN);
     }
 
+    public void promoteFigure(FigureType type) {
+        setType(type);
+    }
+
+    public int getMoveCount() {
+        return moveCount;
+    }
+
+    public void incrementMoveCount() {
+        this.moveCount += 1;
+    }
+
+    public boolean isLastMoved() {
+        return isLastMoved;
+    }
+
+    public void setMoveCount(int moveCount) {
+        this.moveCount = moveCount;
+    }
+
+    public void setLastMoved(boolean lastMoved) {
+        isLastMoved = lastMoved;
+    }
+
+    @Override
+    public String toString() {
+        return type + " " + color;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Figure figure = (Figure) o;
+        return isMoved == figure.isMoved && moveCount == figure.moveCount && isLastMoved == figure.isLastMoved && color == figure.color && type == figure.type;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(color, type, isMoved, moveCount, isLastMoved);
+    }
 }

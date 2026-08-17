@@ -37,11 +37,13 @@ public class Table {
     private static final String FG_GREY = "\u001b[37m";
     private static final String darkBlue = "\u001b[34m";
     private static final String darkRed = "\u001b[31m";
-    private static final String cursorColor = "\u001B[42m" + " " + resetColor; // green
+    private static String cursorColor = "\u001B[42m" + " " + resetColor; // green
     private static final String lockedColor = "\u001B[41m" + " " + resetColor; // red
     private static final String lockedCellColor = "\u001b[45m" + " " + resetColor; // purple
     private static final String targetCellColor = "\u001b[103m" + " " + resetColor; // yellow (darker) (target cell)
     private static final String targetCellColorLight = "\u001b[48;5;143m" + " " + resetColor; // yellow (bright) (target cell)
+    private static final String prevTargetCellColor = "\u001B[48;5;215m" + " " + resetColor; // light orange
+    private static final String prevLockedCellColor = "\u001B[48;5;217m" + " " + resetColor;
 
     // --- print cell ---
     private static final String fullBlockBlue = blueColor + " " + resetColor;
@@ -69,21 +71,6 @@ public class Table {
     private static final String kingBottomLine = "ннн";
     private static final String queenBottomLine = "███"; // queen bishop pawn as well
 
-    //cell-borders
-    private static final String verticalCellBorderLine = "│";
-    private static final String horizontalCellBorderLine = "─";
-    private static final String topLeftBorderCorner = "┌";
-    private static final String topRightBorderCorner = "┐";
-    private static final String bottomLeftBorderCorner = "└";
-    private static final String bottomRightBorderCorner = "┘";
-    private static final String crossIntersection = "┼";
-    private static final String topT_typeIntersection = "┬";
-    private static final String bottomT_typeIntersection = "┴";
-    private static final String leftT_typeIntersection = "├";
-    private static final String rightT_typeIntersection = "┤";
-
-    // │  ﹉﹉
-
 
     private void drawSpaces(int n) {
         for (int i = 0; i < n; i++) {
@@ -92,6 +79,8 @@ public class Table {
     }
 
     public void drawTable(Cursor cursor, Game game) {
+        System.out.print("\033[H\033[2J");
+        System.out.flush();
         drawSpaces(tableSpaces + tableSpaces / 2);
         drawLetters();
         System.out.println();
@@ -181,6 +170,7 @@ public class Table {
         boolean isBlue = startColor;
         Field field = game.getField();
 
+
         System.out.print(vertBar);
         drawSpaces(addSpaceAmount);
         if (currentY == cursorCoordinateY) {
@@ -193,10 +183,14 @@ public class Table {
             boolean isLockedCell = false;
             boolean isCursorCell = false;
             boolean isLockedCursorCell = false;
+            boolean isPrevLockedCell = false;
+            boolean isPrevTargetCell = false;
             boolean isDarkTargetCell = (i + currentY) % 2 == 0;
             Coordinates currentCoords = new Coordinates(i, currentY);
             Cell currentCell = field.getCell(currentCoords);
             Coordinates lockedCoords = (game.isLocked()) ? game.getLockedFigureCoordinates() : null;
+            Coordinates prevLockedCoords = game.getPrevlockedFigureCoordinates();
+            Coordinates prevTargetCoords = game.getPrevtargetFigureCoordinates();
             Figure figure = currentCell.getFigure();
             List<Coordinates> figureMoves = (game.isLocked()) ? game.getCurrentAvailableMoves() : null;
             String bgColor;
@@ -204,28 +198,41 @@ public class Table {
             for (int j = 0; j < cellSpaces; ) { // j++ to replace
                 boolean flag = true;
 
-                if (isOnCursorRow && i == cursorCoordinateX) {
-                    if (!game.isLocked()) {
-                        bgColor = cursorColor;
-                        isCursorCell = true;
-                    } else {
-                        bgColor = lockedColor;
-                        isLockedCursorCell = true;
-                    }
-                    //   bgColor = (!game.isLocked()) ? cursorColor : lockedColor;
-                } else if (game.isLocked() && figureMoves.contains(new Coordinates(i, currentY))) {
-                    if (!isDarkTargetCell) {
-                        bgColor = targetCellColor;
-                    } else {
-                        bgColor = targetCellColorLight;
-                    }
-                    isTargetCell = true;
+                if (!game.isBotGame()) {
+                    if (isOnCursorRow && i == cursorCoordinateX) {
+                        if (!game.isLocked()) {
+                            bgColor = cursorColor;
+                            isCursorCell = true;
+                        } else {
+                            bgColor = lockedColor;
+                            isLockedCursorCell = true;
+                        }
+                        //   bgColor = (!game.isLocked()) ? cursorColor : lockedColor;
+                    } else if (prevLockedCoords != null && prevLockedCoords.equals(currentCoords)) {
+                        bgColor = prevLockedCellColor;
+                        isPrevLockedCell = true;
+                    }  else if (prevTargetCoords != null && prevTargetCoords.equals(currentCoords)) {
+                        bgColor = prevTargetCellColor;
+                        isPrevTargetCell = true;
+                    } else if (game.isLocked() && figureMoves.contains(new Coordinates(i, currentY))) {
+                        if (!isDarkTargetCell) {
+                            bgColor = targetCellColor;
+                        } else {
+                            bgColor = targetCellColorLight;
+                        }
+                        isTargetCell = true;
 
-                } else if (game.isLocked() && lockedCoords.equals(currentCoords)) {
-                    bgColor = lockedCellColor;
-                    isLockedCell = true;
+                    } else if (game.isLocked() && lockedCoords.equals(currentCoords)) {
+                        bgColor = lockedCellColor;
+                        isLockedCell = true;
+                    }  else bgColor = (isBlue) ? fullBlockBlue : fullBlockWhite;
+                } else if (prevLockedCoords != null && prevLockedCoords.equals(currentCoords)) {
+                    bgColor = prevLockedCellColor;
+                    isPrevLockedCell = true;
+                }  else if (prevTargetCoords != null && prevTargetCoords.equals(currentCoords)) {
+                    bgColor = prevTargetCellColor;
+                    isPrevTargetCell = true;
                 } else bgColor = (isBlue) ? fullBlockBlue : fullBlockWhite;
-                //      if (currentCoords.getCoordinateX() == 0 && currentCoords.getCoordinateY() == 0) {
 
                 if (figure != null) {
                     if (cellSpaces - j == 7 || cellSpaces - j == 1) {
@@ -233,14 +240,24 @@ public class Table {
                     } else {
                         if (currentCellPart == CellParts.UPPER && figure.getType() == FigureType.PAWN) {
                             //  bgColor += " " + resetColor;
-                        } else if (isCursorCell) {
-                            bgColor = "\u001B[42m";
-                        } else if (isLockedCell) {
-                            bgColor = "\u001b[45m";
-                        } else if (isTargetCell) {
-                            bgColor = (isDarkTargetCell) ? "\u001b[48;5;143m" : "\u001b[103m";
-                        } else if (isLockedCursorCell) {
-                            bgColor = "\u001b[41m";
+                        } else if (!game.isBotGame()) {
+                            if (isCursorCell) {
+                                bgColor = "\u001B[42m";
+                            } else if (isLockedCell) {
+                                bgColor = "\u001b[45m";
+                            } else if (isTargetCell) {
+                                bgColor = (isDarkTargetCell) ? "\u001b[48;5;143m" : "\u001b[103m";
+                            } else if (isLockedCursorCell) {
+                                bgColor = "\u001b[41m";
+                            } else if (isPrevTargetCell) {
+                                bgColor = "\u001B[48;5;215m";
+                            } else if (isPrevLockedCell) {
+                                bgColor = "\u001B[48;5;217m";
+                            } else bgColor = (isBlue) ? blueColor : BG_WHITE;
+                        } else if (isPrevTargetCell) {
+                            bgColor = "\u001B[48;5;215m";
+                        } else if (isPrevLockedCell) {
+                            bgColor = "\u001B[48;5;217m";
                         } else bgColor = (isBlue) ? blueColor : BG_WHITE;
 
                         drawFigure(figure, currentCellPart, bgColor);

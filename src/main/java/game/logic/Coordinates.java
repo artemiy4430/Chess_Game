@@ -7,11 +7,13 @@ public class Coordinates {
     private int coordinateX;
     private int coordinateY;
     private boolean isAttackCoordinate;
+    private boolean isEnpassant;
 
     public Coordinates(int coordinateX, int coordinateY) {
         this.coordinateX = coordinateX;
         this.coordinateY = coordinateY;
         isAttackCoordinate = false;
+        isEnpassant = false;
     }
 
     public int getCoordinateX() {
@@ -38,6 +40,13 @@ public class Coordinates {
         isAttackCoordinate = attackCoordinate;
     }
 
+    public boolean isEnpassant() {
+        return isEnpassant;
+    }
+
+    public void setEnpassant(boolean enpassant) {
+        isEnpassant = enpassant;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -49,5 +58,11 @@ public class Coordinates {
     @Override
     public int hashCode() {
         return Objects.hash(coordinateX, coordinateY);
+    }
+
+    @Override
+    public String toString() {
+        return  "coordinateX: " + coordinateX +
+                "\ncoordinateY " + coordinateY;
     }
 }

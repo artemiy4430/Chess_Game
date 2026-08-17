@@ -2,6 +2,8 @@ package game.logic;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.RecursiveTask;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -15,8 +17,26 @@ public class Field {
 
     public Field() {
         this.size = 8;
-         generate();
-       // customFigureSet();
+        generate();
+        // customFigureSet();
+    }
+
+    public Field(final Field f) {
+        this.size = f.size;
+        this.board = new ArrayList<>();
+
+        for (int i = 0; i < f.board.size(); i++) {
+            List<Cell> row = new ArrayList<>();
+
+            for (int j = 0; j < f.board.get(i).size(); j++) {
+                Cell cell = new Cell();
+                cell.setColor(f.board.get(i).get(j).getColor());
+                cell.setFigure(f.board.get(i).get(j).getFigure());
+                cell.setAttacked(f.board.get(i).get(j).isAttacked());
+                row.add(cell);
+            }
+            this.board.add(row);
+        }
     }
 
     public int getSize() {
@@ -52,43 +72,93 @@ public class Field {
         return board.get(coordinates.getCoordinateY()).get(coordinates.getCoordinateX()).getFigure() != null;
     }
 
+    public boolean contains(Cell cell) {
+        return cell.getFigure() != null;
+    }
+
     public Cell getCell(Coordinates coordinates) {
         if (isWithinBoard(coordinates))
             return board.get(coordinates.getCoordinateY()).get(coordinates.getCoordinateX());
         return null;
     }
 
+    public Cell getCell(Figure figure) {
+        if (figure == null) return null;
+
+        return IntStream.range(0, size)
+                .boxed()
+                .flatMap(i -> IntStream.range(0, size)
+                        .mapToObj(j -> new Coordinates(j, i)))
+                .filter(coords -> {
+                    Figure currentFigure = getFigure(coords);
+
+                    return currentFigure != null && currentFigure.equals(figure);
+                })
+                .map(this::getCell)
+                .findFirst()
+                .orElse(null);
+    }
+
     public void setFigure(Coordinates oldCoordinates, Coordinates newCoordinates) {
+        if (!isWithinBoard(oldCoordinates) || !isWithinBoard(newCoordinates)) return;
+
         Figure figure = getFigure(oldCoordinates);
+        if (figure == null) return;
 
-        if (!isWithinBoard(newCoordinates) || figure == null) return;
-        Cell newCell = getCell(newCoordinates);
         Cell currentCell = getCell(oldCoordinates);
-
-        if (newCell.getFigure() == null) {
-            newCell.setFigure(figure);
-            currentCell.setFigure(null);
-        }
-    }
-
-    public void setFigure(Figure figure, Coordinates newCoordinates) { // overloading
-        if (!isWithinBoard(newCoordinates) || figure == null) return;
         Cell newCell = getCell(newCoordinates);
 
-        if (newCell.getFigure() == null) {
-            newCell.setFigure(figure);
-        }
+        newCell.setFigure(figure);
+        currentCell.setFigure(null);
     }
 
+    public void setFigure(Figure figure, Coordinates newCoordinates) {
+        if (!isWithinBoard(newCoordinates) || figure == null) return;
+
+        Cell newCell = getCell(newCoordinates);
+
+        newCell.setFigure(figure);
+    }
 
     public void removeFigure(Coordinates coordinates) {
-        Cell cell = getCell(coordinates);
-        Figure figure = cell.getFigure();
+        if (!isWithinBoard(coordinates)) return;
 
-        if (figure != null) {
+        Cell cell = getCell(coordinates);
+        if (cell.getFigure() != null) {
             cell.setFigure(null);
         }
     }
+//    public void setFigure(Coordinates oldCoordinates, Coordinates newCoordinates) {
+//        Figure figure = getFigure(oldCoordinates);
+//
+//        if (!isWithinBoard(newCoordinates) || figure == null) return;
+//        Cell newCell = getCell(newCoordinates);
+//        Cell currentCell = getCell(oldCoordinates);
+//
+//        if (newCell.getFigure() == null) {
+//            newCell.setFigure(figure);
+//            currentCell.setFigure(null);
+//        }
+//    }
+//
+//    public void setFigure(Figure figure, Coordinates newCoordinates) { // overloading
+//        if (!isWithinBoard(newCoordinates) || figure == null) return;
+//        Cell newCell = getCell(newCoordinates);
+//
+//        if (newCell.getFigure() == null) {
+//            newCell.setFigure(figure);
+//        }
+//    }
+//
+//
+//    public void removeFigure(Coordinates coordinates) {
+//        Cell cell = getCell(coordinates);
+//        Figure figure = cell.getFigure();
+//
+//        if (figure != null) {
+//            cell.setFigure(null);
+//        }
+//    }
 
     private void generate() {
         fillWithCells();
@@ -105,15 +175,8 @@ public class Field {
 
     private void customFigureSet() {
         fillWithCells();
-        Figure figure = new Figure(Color.WHITE, FigureType.PAWN);
-        getCell(new Coordinates(0, 1)).setFigure(figure);
-       // assignFigure();
-
-        // generate();
-        // setFigure(new Coordinates(3, 6), new Coordinates(3, 4));
-        // removeFigure(new Coordinates(4, 1));
-        // setFigure(new Coordinates(3 , 1), new Coordinates(3 , 3));
-        // setFigure(new Coordinates(2 , 7), new Coordinates(4 , 3));
+        generate();
+        setFigure(new Coordinates(5, 6), new Coordinates(5, 4));
     }
 
     private void assignFigure(Coordinates coordinates) {
@@ -160,6 +223,26 @@ public class Field {
                             return currentCell;
                         }).collect(Collectors.toCollection(ArrayList::new)))
                 .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    public void setLastMoved(Coordinates coordinates) {
+        getFigure(coordinates).setLastMoved(true);
+    }
+
+    public boolean isBothRookOnBoard(Color turn) {
+        return IntStream.range(0, size)
+                .boxed()
+                .flatMap(i -> IntStream.range(0, size)
+                        .mapToObj(j -> new Coordinates(j, i)))
+                .map(coordinates -> {
+                    Figure figure = getFigure(coordinates);
+
+                    if (figure != null && figure.getColor() == turn && figure.getType() == FigureType.ROOK)
+                        return figure;
+
+                    return null;
+                })
+                .filter(Objects::nonNull).count() == 2;
     }
 
 }
