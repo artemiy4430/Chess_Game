@@ -16,7 +16,7 @@ public class MatchManager {
     private Color winner;
     private boolean isTie;
     private boolean isStaleMate;
-    private boolean isQueenPromoted;
+    private boolean isPromotion;
     private int consecutiveMovesWhite = 0;
     private int consecutiveMovesBlack = 0;
     private boolean currMoveIsAttack;
@@ -693,16 +693,16 @@ public class MatchManager {
     }
 
 
-    public boolean isQueenPromoted() {
-        return isQueenPromoted;
+    public boolean isPromotion() {
+        return isPromotion;
     }
 
     public int getTurnCounter() {
         return turnCounter;
     }
 
-    public void setQueenPromoted(boolean queenPromoted) {
-        isQueenPromoted = queenPromoted;
+    public void setPromotion(boolean promotion) {
+        isPromotion = promotion;
     }
 
     public void setTurnCounter(int turnCounter) {

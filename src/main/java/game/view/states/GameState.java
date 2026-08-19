@@ -66,6 +66,8 @@ public class GameState extends MenuState {
 
     @Override
     public void handleInput(NativeKeyEvent e) {
+        MatchManager manager = game.getMatchManager();
+
         if (isTransitioning) {
             return;
         }
@@ -109,6 +111,12 @@ public class GameState extends MenuState {
                 stateManager.setSuspendedState(this);
                 stateManager.setCurrentState(new GameMenuState(stateManager, graphic));
             }
+        }
+        if (manager.isPromotion()) {
+            ChoiceState choiceState = new ChoiceState(stateManager, game);
+            stateManager.setSuspendedState(this);
+            stateManager.setCurrentState(choiceState);
+            render();
         }
 
         if (game.isGameOver()) {

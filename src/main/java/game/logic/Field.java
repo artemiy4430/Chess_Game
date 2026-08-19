@@ -17,7 +17,8 @@ public class Field {
 
     public Field() {
         this.size = 8;
-        generate();
+        // generate();
+        customFigureSet();
     }
 
 
@@ -144,10 +145,15 @@ public class Field {
                         }));
     }
 
-  //  private void customFigureSet() { // for tests
-  //      fillWithCells();
-  //      // generate();
-  //  }
+    private void customFigureSet() { // for tests
+        fillWithCells();
+        generate();
+         removeFigure(new Coordinates(1,7));
+        removeFigure(new Coordinates(2,7));
+        removeFigure(new Coordinates(3,7));
+        removeFigure(new Coordinates(5,7));
+        removeFigure(new Coordinates(6,7));
+    }
 
     private void assignFigure(Coordinates coordinates) {
         int coordinateY = coordinates.getCoordinateY();

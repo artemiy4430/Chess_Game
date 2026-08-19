@@ -22,6 +22,8 @@ public class Game {
     private boolean isGameOver = false;
     private Coordinates prevLockedFigureCoordinates;
     private Coordinates prevTargetFigureCoordinates;
+    private Figure pendingMoving;
+    private Figure pendingCaptured;
 
     public Game(MatchManager matchManager, Color selectedTurn, int depth) {
         this.matchManager = matchManager;
@@ -38,6 +40,7 @@ public class Game {
         this.player1 = new Player("PLAYER1", Color.WHITE);
         this.player2 = new Player("PLAYER2", Color.WHITE);
     }
+
     public Contender getCurrentContender() {
         Color currentTurn = this.matchManager.getCurrentTurn();
 
@@ -45,12 +48,6 @@ public class Game {
             return (currentTurn == this.bot.getTurn()) ? this.bot : this.player1;
         } else return (currentTurn == this.player1.getTurn()) ? this.player1 : this.player2;
     }
-
-//    public Game(MatchManager matchManager, Bot bot1) {
-//        this.matchManager = matchManager;
-//        this.currentAvailableMoves = new ArrayList<>();
-//        this.bot1 = bot1;
-//    }
 
     public void setListener(GameEventListener listener) {
         this.listener = listener;
@@ -104,8 +101,15 @@ public class Game {
                 if (isEnPassant) {
                     capturedFigure = new Figure(matchManager.getOppositeColor(currentTurn), FigureType.PAWN);
                 }
+                if (isPromotion) {
+                    System.out.println("PROMOTION");
+                    this.matchManager.setPromotion(true);
+                    this.pendingMoving = movingFigure;
+                    this.pendingCaptured = capturedFigure;
+                    return;
+                }
                 Move move = new Move(lockedFigureCoordinates, newFigureCoordinates,
-                        movingFigure, capturedFigure, (isPromotion) ? FigureType.QUEEN : null, isEnPassant, isCastle);
+                        movingFigure, capturedFigure, null, isEnPassant, isCastle);
 
                 move(move, matchManager);
                 endTurn();
@@ -117,7 +121,17 @@ public class Game {
         this.isLocked = false;
         this.lockedFigureCoordinates = null;
         this.newFigureCoordinates = null;
+        this.pendingMoving = null;
+        this.pendingCaptured = null;
         this.currentAvailableMoves.clear();
+    }
+
+    public void completePromotion(FigureType chosenType) {
+        Move move = new Move(lockedFigureCoordinates,
+                newFigureCoordinates, pendingMoving, pendingCaptured, chosenType, false, false);
+        move(move, matchManager);
+        matchManager.setPromotion(false);
+        endTurn();
     }
 
     private void endTurn() {
