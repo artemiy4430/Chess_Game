@@ -7,8 +7,7 @@ public class Cell {
     private Figure figure;
     private boolean isAttacked;
 
-    public Cell() {
-    }
+    public Cell() {}
 
     public Cell(Color color) {
         this.color = color;

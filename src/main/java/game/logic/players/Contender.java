@@ -26,4 +26,9 @@ public abstract class Contender {
     public void setTurn(Color turn) {
         this.turn = turn;
     }
+
+    @Override
+    public String toString() {
+        return name;
+    }
 }

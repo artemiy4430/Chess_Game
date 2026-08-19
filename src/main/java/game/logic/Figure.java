@@ -38,14 +38,13 @@ public class Figure {
 
     public int getPrice() {
         return switch (type) {
-            case PAWN -> 1;
-            case ROOK -> 5;
-            case KNIGHT, BISHOP -> 3;
+            case PAWN -> 1; // 8
+            case ROOK -> 5; // 10
+            case KNIGHT, BISHOP -> 3; // 12
             case KING -> 0;
-            case QUEEN -> 9;
+            case QUEEN -> 9; // 9
         };
     }
-
 
     public boolean isMoved() {
         return isMoved;

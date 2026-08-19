@@ -1,8 +1,8 @@
 package game.logic;
 
-import game.logic.moves.piecemoves.*;
 import game.logic.players.Bot;
 import game.logic.players.Contender;
+import game.logic.players.Player;
 import game.logic.players.moveconfig.Move;
 
 import java.util.ArrayList;
@@ -15,32 +15,42 @@ public class Game {
     private List<Coordinates> currentAvailableMoves;
     private Coordinates lockedFigureCoordinates;
     private Coordinates newFigureCoordinates;
-    private boolean isQueenPromoted;
     private MatchManager matchManager;
-    private Bot bot1;
-    private Bot bot2;
-    private GameStage currentStage;
-    private Coordinates prevlockedFigureCoordinates;
-    private Coordinates prevtargetFigureCoordinates;
+    private Bot bot;
+    private Player player1;
+    private Player player2;
+    private boolean isGameOver = false;
+    private Coordinates prevLockedFigureCoordinates;
+    private Coordinates prevTargetFigureCoordinates;
+
+    public Game(MatchManager matchManager, Color selectedTurn, int depth) {
+        this.matchManager = matchManager;
+        this.currentAvailableMoves = new ArrayList<>();
+        this.bot = new Bot("BOT", matchManager.getOppositeColor(selectedTurn), depth);
+        this.player1 = new Player("PLAYER", selectedTurn);
+        this.player2 = null;
+    }
 
     public Game(MatchManager matchManager) {
+        this.bot = null;
         this.matchManager = matchManager;
         this.currentAvailableMoves = new ArrayList<>();
+        this.player1 = new Player("PLAYER1", Color.WHITE);
+        this.player2 = new Player("PLAYER2", Color.WHITE);
+    }
+    public Contender getCurrentContender() {
+        Color currentTurn = this.matchManager.getCurrentTurn();
+
+        if (this.bot != null) {
+            return (currentTurn == this.bot.getTurn()) ? this.bot : this.player1;
+        } else return (currentTurn == this.player1.getTurn()) ? this.player1 : this.player2;
     }
 
-    public Game(MatchManager matchManager, Bot bot) {
-        this.matchManager = matchManager;
-        this.currentAvailableMoves = new ArrayList<>();
-        this.bot1 = bot;
-    }
-
-    public Game(MatchManager matchManager, Bot bot1, Bot bot2) {
-        this.matchManager = matchManager;
-        this.currentAvailableMoves = new ArrayList<>();
-        this.bot1 = bot1;
-        this.bot2 = bot2;
-        currentStage = matchManager.getStage();
-    }
+//    public Game(MatchManager matchManager, Bot bot1) {
+//        this.matchManager = matchManager;
+//        this.currentAvailableMoves = new ArrayList<>();
+//        this.bot1 = bot1;
+//    }
 
     public void setListener(GameEventListener listener) {
         this.listener = listener;
@@ -57,8 +67,7 @@ public class Game {
     public void processSpace(Cursor cursor) {
         Color currentTurn = getCurrentTurn();
 
-        if (bot1 != null && getCurrentTurn() == bot1.getTurn()
-                || bot2 != null && getCurrentTurn() == bot2.getTurn()) return;
+        if (bot != null && getCurrentTurn() == bot.getTurn()) return;
         Field field = getField();
         Coordinates currentCursorCoordinates = new Coordinates(cursor.getCursorCoordinateX(),
                 cursor.getCursorCoordinateY());
@@ -98,22 +107,11 @@ public class Game {
                 Move move = new Move(lockedFigureCoordinates, newFigureCoordinates,
                         movingFigure, capturedFigure, (isPromotion) ? FigureType.QUEEN : null, isEnPassant, isCastle);
 
-                //  boolean contains = false;
-                //  for (Coordinates coordinates : availableMoves) {
-                //      if (coordinates.equals(currentCursorCoordinates)) {
-                //          contains = true;
-                //          currentCursorCoordinates.setAttackCoordinate(coordinates.isAttackCoordinate());
-                //      }
-                //  } ????
-
-
                 move(move, matchManager);
                 endTurn();
-                // unlock(); ????
             }
         }
     }
-
 
     public void unlock() {
         this.isLocked = false;
@@ -132,62 +130,42 @@ public class Game {
         matchManager.updateStage();
         matchManager.clearLastMovedFigure(nextTurnColor);
 
-        if (currentStage != matchManager.getStage()) {
-            currentStage = matchManager.getStage();
-         //   System.out.println("STAGE WAS UPDATED " + currentStage);
-        }
-       // System.out.println(currentStage);
-
         if (matchManager.endGameCheck()) {
-            System.out.println("GAME OVER!");
             listener.onBoardChanged(getField());
+            isGameOver = true;
             return;
         } else if (countConsecutiveMoves()) {
             matchManager.setTie(true);
-            System.out.println("GAME TIED!");
             listener.onBoardChanged(getField());
+            isGameOver = true;
             return;
         }
-        this.prevlockedFigureCoordinates = this.lockedFigureCoordinates;
-        this.prevtargetFigureCoordinates = this.newFigureCoordinates;
+        this.prevLockedFigureCoordinates = this.lockedFigureCoordinates;
+        this.prevTargetFigureCoordinates = this.newFigureCoordinates;
         unlock();
+        matchManager.setCurrentTurn(nextTurnColor);
         listener.onBoardChanged(getField());
 
-        matchManager.setCurrentTurn(nextTurnColor);
-
-        if (bot1 != null) {
-            Bot currentBot = bot1;
-
-            if (bot2 != null) {
-                currentBot = (bot1.getTurn() == getCurrentTurn()) ? bot1 : bot2;
-            } else if (bot1.getTurn() != getCurrentTurn()) {
-                return;
-            }
-
-            final Bot botToExecute = currentBot;
+        if (bot != null && bot.getTurn() == nextTurnColor) {
 
             // BREAK RECURSIVE STACK OVERFLOW:
             // SwingUtilities.invokeLater places the bot task onto the event queue,
             // allowing endTurn() and move() to return completely FIRST!
-            javax.swing.SwingUtilities.invokeLater(() -> handleBotTurn(botToExecute));
+            javax.swing.SwingUtilities.invokeLater(this::handleBotTurn); /// this line of code is FULLY copied from gemini :)
         }
     }
 
-    public void handleBotTurn(Bot bot) {
+    public void handleBotTurn() {
         MatchManager manager = new MatchManager(matchManager);
-        Move bestMove = bot.calculateBestMove(manager, 4, bot.getTurn());
+        Move bestMove = bot.calculateBestMove(manager, bot.getDepth(), bot.getTurn());
 
         if (bestMove != null) {
-            if (bot1 != null || bot2 != null) {
-                this.lockedFigureCoordinates = bestMove.from();
-                this.newFigureCoordinates = bestMove.to();
-            }
-
+            this.lockedFigureCoordinates = bestMove.from();
+            this.newFigureCoordinates = bestMove.to();
             move(bestMove, matchManager);
             endTurn();
         }
     }
-
 
     public void move(Move move, MatchManager manager) {
         Color turn = getCurrentTurn();
@@ -201,7 +179,6 @@ public class Game {
             }
             manager.setCurrMoveIsAttack(false);
         } else {
-            manager.incrementPoints(field.getFigure(move.to()));
             capture(field, move);
             manager.setCurrMoveIsAttack(true);
         }
@@ -281,22 +258,43 @@ public class Game {
     }
 
     public boolean countConsecutiveMoves() {
-        boolean flag = false;
-
         if (matchManager.isCurrMoveIsAttack()) {
             matchManager.consecutiveMovesReset(getCurrentTurn());
             return false;
         }
-        Figure prevFigure = (getCurrentTurn() == Color.WHITE) ? matchManager.getPrevCheckerUsedWhite() : matchManager.getPrevCheckerUsedBlack();
-        Figure currentFigure = getField().getFigure(newFigureCoordinates);
+
+        Figure prevFigure = (getCurrentTurn() == Color.WHITE)
+                ? matchManager.getPrevCheckerUsedWhite()
+                : matchManager.getPrevCheckerUsedBlack();
+        Figure currentFigure = getField().getFigure(this.newFigureCoordinates);
+
+        if (currentFigure == null) return false;
+        boolean flag = false;
 
         if (prevFigure != null && currentFigure.getType() != FigureType.PAWN && prevFigure.equals(currentFigure)) {
             flag = matchManager.consecutiveMovesUpdate();
         } else {
             matchManager.consecutiveMovesReset(getCurrentTurn());
         }
+        if (getCurrentTurn() == Color.WHITE) {
+            matchManager.setPrevCheckerUsedWhite(currentFigure);
+        } else {
+            matchManager.setPrevCheckerUsedBlack(currentFigure);
+        }
 
         return flag;
+    }
+
+    public Bot getBot() {
+        return bot;
+    }
+
+    public Player getPlayer1() {
+        return player1;
+    }
+
+    public Player getPlayer2() {
+        return player2;
     }
 
     public MatchManager getMatchManager() {
@@ -339,15 +337,23 @@ public class Game {
         this.currentAvailableMoves = currentAvailableMoves;
     }
 
-    public boolean isBotGame() {
-        return bot1 != null && bot2 != null;
+//    public boolean isBotGame() {
+//        return bot1 != null && bot2 != null;
+//    }
+
+    public Coordinates getPrevTargetFigureCoordinates() {
+        return prevTargetFigureCoordinates;
     }
 
-    public Coordinates getPrevtargetFigureCoordinates() {
-        return prevtargetFigureCoordinates;
+    public Coordinates getPrevLockedFigureCoordinates() {
+        return prevLockedFigureCoordinates;
     }
 
-    public Coordinates getPrevlockedFigureCoordinates() {
-        return prevlockedFigureCoordinates;
+    public boolean isGameOver() {
+        return isGameOver;
+    }
+
+    public void setGameOver(boolean gameOver) {
+        isGameOver = gameOver;
     }
 }

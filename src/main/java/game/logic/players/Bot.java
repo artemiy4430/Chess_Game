@@ -7,15 +7,14 @@ import java.util.*;
 import java.util.stream.IntStream;
 
 public class Bot extends Contender {
-    List<FigureType> promotionTypes = List.of(FigureType.QUEEN, FigureType.KNIGHT, FigureType.ROOK, FigureType.BISHOP);
-    Random random;
-    boolean isPlayerOpponent;
-    boolean hasCastled;
+    private List<FigureType> promotionTypes = List.of(FigureType.QUEEN, FigureType.KNIGHT,
+            FigureType.ROOK, FigureType.BISHOP);
+    private boolean hasCastled;
+    private int depth;
 
-    public Bot(String name, Color turn, boolean isPlayerOpponent) {
+    public Bot(String name, Color turn, int depth) {
         super(name, turn);
-        random = new Random();
-        this.isPlayerOpponent = isPlayerOpponent;
+        this.depth = depth;
         this.hasCastled = false;
     }
 
@@ -24,7 +23,7 @@ public class Bot extends Contender {
         boolean isMinimizing = (botColor == Color.BLACK);
         List<Move> legalMoves = getAllAvailableLegalMoves(manager, botColor);
         List<Move> castlingMoves = new ArrayList<>();
-        Map<Move, Integer> moveScores = new HashMap<>();
+     //   Map<Move, Integer> moveScores = new HashMap<>();
         if (legalMoves.isEmpty()) {
             return null;
         }
@@ -62,7 +61,7 @@ public class Bot extends Contender {
                 undoMove(field, move);
             }
 
-            moveScores.put(move, score);
+        //    moveScores.put(move, score);
 
             if (!isMinimizing) {
                 if (score > bestScore) {
@@ -78,38 +77,37 @@ public class Bot extends Contender {
                 beta = Math.min(beta, bestScore);
             }
         }
-        if (isPlayerOpponent || manager.getStage() == GameStage.ENDGAME) return bestMove;
+       return bestMove;
 
-
-        Move selection;
-        int threshold = switch (manager.getStage()) {
-            case START -> 5;
-            case MIDGAME -> 3;
-            case ENDGAME -> 0;
-        };
-
-        List<Move> candidateMoves = new ArrayList<>();
-        List<Integer> scores = new ArrayList<>();
-
-        for (Map.Entry<Move, Integer> entry : moveScores.entrySet()) {
-            int scoreDelta = isMinimizing
-                    ? (entry.getValue() - bestScore)
-                    : (bestScore - entry.getValue());
-
-            if (scoreDelta <= threshold) {
-                candidateMoves.add(entry.getKey());
-                scores.add(entry.getValue());
-            }
-        }
-
-        if (candidateMoves.isEmpty() && bestMove != null) {
-            if (bestMove.isCastle()) setHasCastled(true);
-            return bestMove;
-        }
-
-        selection = candidateMoves.get(random.nextInt(candidateMoves.size()));
-        if (selection.isCastle()) setHasCastled(true);
-        return selection;
+//        Move selection;
+//        int threshold = switch (manager.getStage()) {
+//            case START -> 5;
+//            case MIDGAME -> 3;
+//            case ENDGAME -> 0;
+//        };
+//
+//        List<Move> candidateMoves = new ArrayList<>();
+//        List<Integer> scores = new ArrayList<>();
+//
+//        for (Map.Entry<Move, Integer> entry : moveScores.entrySet()) {
+//            int scoreDelta = isMinimizing
+//                    ? (entry.getValue() - bestScore)
+//                    : (bestScore - entry.getValue());
+//
+//            if (scoreDelta <= threshold) {
+//                candidateMoves.add(entry.getKey());
+//                scores.add(entry.getValue());
+//            }
+//        }
+//
+//        if (candidateMoves.isEmpty() && bestMove != null) {
+//            if (bestMove.isCastle()) setHasCastled(true);
+//            return bestMove;
+//        }
+//
+//        selection = candidateMoves.get(random.nextInt(candidateMoves.size()));
+//        if (selection.isCastle()) setHasCastled(true);
+//        return selection;
 
     }
 
@@ -368,26 +366,7 @@ public class Bot extends Contender {
 
         if (blackKing == null) return 1000000;
         if (whiteKing == null) return -1000000;
-
         int totalPoints = 0;
-        int materialWhite = countMaterial(manager, Color.WHITE);
-        int materialBlack = countMaterial(manager, Color.BLACK);
-        int materialDiff = materialWhite - materialBlack;
-
-//
-//        if (Math.abs(materialDiff) >= 500 || manager.getStage() == GameStage.ENDGAME) {
-//            totalPoints += (materialDiff > 0) ? 600 : -600;
-//
-//            if (materialDiff > 500) {
-//                totalPoints += evaluateEndgame(manager, Color.WHITE);
-//              //  if (manager.isKingUnderCheck(Color.BLACK)) totalPoints += 150;
-//            } else {
-//                totalPoints -= evaluateEndgame(manager, Color.BLACK);
-//             //   if (manager.isKingUnderCheck(Color.WHITE)) totalPoints -= 150;
-//            }
-//
-//            return totalPoints;
-//        }
 
         totalPoints += getTotalFigurePoints(manager, Color.WHITE);
         totalPoints -= getTotalFigurePoints(manager, Color.BLACK);
@@ -414,16 +393,6 @@ public class Bot extends Contender {
         }
 
         return totalPoints;
-    }
-
-    private int countMaterial(MatchManager manager, Color turn) {
-        Field field = manager.getField();
-        return IntStream.range(0, field.getSize())
-                .boxed()
-                .flatMap(i -> IntStream.range(0, field.getSize())
-                        .mapToObj(j -> field.getFigure(new Coordinates(j, i))))
-                .filter(figure -> figure != null && figure.getColor() == turn)
-                .mapToInt(Figure::getPrice).sum();
     }
 
     private int isOpponentUnderCheck(MatchManager manager, Color turn) {
@@ -668,29 +637,6 @@ public class Bot extends Contender {
         return true;
     }
 
-    // It calculates how close the enemy King is to the edge of the board, and how close your King is to their King
-    private int evaluateMopUp(MatchManager manager, Color turn) {
-        Color enemyColor = manager.getOppositeColor(turn);
-        Coordinates friendlyKing = manager.getKing(turn);
-        Coordinates enemyKing = manager.getKing(enemyColor);
-
-        if (friendlyKing == null || enemyKing == null) return 0;
-        int score = 0;
-        int enemyX = enemyKing.getCoordinateX();
-        int enemyY = enemyKing.getCoordinateY();
-        int centerDistX = Math.max(3 - enemyX, enemyX - 4);
-        int centerDistY = Math.max(3 - enemyY, enemyY - 4);
-        int centerDistance = centerDistX + centerDistY;
-
-        score += centerDistance * 30;
-        int kingDist = Math.abs(friendlyKing.getCoordinateX() - enemyX)
-                + Math.abs(friendlyKing.getCoordinateY() - enemyY);
-
-        score += (14 - kingDist) * 20;
-
-        return score;
-    }
-
     private int evaluateKingSafety(MatchManager manager, Color turn) {
         Color enemyColor = manager.getOppositeColor(turn);
         Coordinates enemyKing = manager.getKing(enemyColor);
@@ -716,44 +662,6 @@ public class Bot extends Contender {
             }
         }
         return attackBonus;
-    }
-
-    private int evaluateEnemyKingTrap(MatchManager manager, Color winningColor) {
-        Color losingColor = manager.getOppositeColor(winningColor);
-        Coordinates enemyKingCoord = manager.getKing(losingColor);
-        Coordinates friendlyKingCoord = manager.getKing(winningColor);
-        Field field = manager.getField();
-
-        if (enemyKingCoord == null) return 0;
-
-        int score = 0;
-        int enemyX = enemyKingCoord.getCoordinateX();
-        int enemyY = enemyKingCoord.getCoordinateY();
-
-        // 1. Push Enemy King to Board Edges
-        int centerDistX = Math.max(3 - enemyX, enemyX - 4);
-        int centerDistY = Math.max(3 - enemyY, enemyY - 4);
-        score += (centerDistX + centerDistY) * 50;
-
-        // 2. Restrict Enemy King Escape Squares
-        List<Coordinates> kingMoves = manager.filterMoves(enemyKingCoord);
-        int safeSquares = 0;
-        for (Coordinates move : kingMoves) {
-            if (!field.getCell(move).isAttacked()) {
-                safeSquares++;
-            }
-        }
-        // High reward for squeezing the King's mobility down to 0-2 squares
-        score += (8 - safeSquares) * 80;
-
-        // 3. Bring Friendly King in if needed
-        if (friendlyKingCoord != null) {
-            int kingDistance = Math.abs(friendlyKingCoord.getCoordinateX() - enemyX)
-                    + Math.abs(friendlyKingCoord.getCoordinateY() - enemyY);
-            score += (14 - kingDistance) * 15;
-        }
-
-        return score;
     }
 
     private int evaluateCastlingRules(MatchManager manager, Color turn) {
@@ -792,51 +700,15 @@ public class Bot extends Contender {
         return flag;
     }
 
-    private int evaluateEndgame(MatchManager manager, Color winningColor) {
-        Field field = manager.getField();
-        int score = 0;
-        int queenCount = 0;
-        int rookCount = 0;
-        List<Coordinates> pawns = new ArrayList<>();
-
-        for (int y = 0; y < field.getSize(); y++) {
-            for (int x = 0; x < field.getSize(); x++) {
-                Figure f = field.getFigure(new Coordinates(x, y));
-                if (f != null && f.getColor() == winningColor) {
-                    if (f.getType() == FigureType.QUEEN) queenCount++;
-                    else if (f.getType() == FigureType.ROOK) rookCount++;
-                    else if (f.getType() == FigureType.PAWN) pawns.add(new Coordinates(x, y));
-                }
-            }
-        }
-
-        if (queenCount > 0 || rookCount > 0) {
-            score += evaluateEnemyKingTrap(manager, winningColor);
-            score += evaluateMopUp(manager, winningColor);
-        } else if (!pawns.isEmpty()) {
-            for (Coordinates pawnCoord : pawns) {
-                int rank = pawnCoord.getCoordinateY();
-                int stepsToPromote = (winningColor == Color.WHITE) ? rank : (7 - rank);
-
-                score += (7 - stepsToPromote) * 150;
-            }
-            Coordinates friendlyKing = manager.getKing(winningColor);
-            if (friendlyKing != null && !pawns.isEmpty()) {
-                Coordinates closestPawn = pawns.getFirst();
-                int distToPawn = Math.abs(friendlyKing.getCoordinateX() - closestPawn.getCoordinateX())
-                        + Math.abs(friendlyKing.getCoordinateY() - closestPawn.getCoordinateY());
-                score += (14 - distToPawn) * 15;
-            }
-        }
-
-        return score;
-    }
-
     public boolean isHasCastled() {
         return hasCastled;
     }
 
     public void setHasCastled(boolean hasCastled) {
         this.hasCastled = hasCastled;
+    }
+
+    public int getDepth() {
+        return depth;
     }
 }

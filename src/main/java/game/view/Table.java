@@ -17,10 +17,9 @@ public class Table {
     private static final int digits = 8;
     private static final int additionalBorderSpace = 2;
     private static final int tableSpaces = 30;
-
     private final int logBoardLength = boardLength;
-    private String whiteName;
-    private String blackName;
+
+
 
     // --- white color ---
     private static final String BG_WHITE = "\u001B[107m";
@@ -96,7 +95,6 @@ public class Table {
 
         for (int j = 0, currentCellPartNumber = 0, counter = 1, y = 0; j < boardLength * 3;
              j++, counter++, currentCellPartNumber++) {
-            //   isLinePrinted = j % 2 == 0;
 
             if (j != 0 && j % 3 == 0) {
                 y++;
@@ -121,11 +119,7 @@ public class Table {
 
         drawSpaces(tableSpaces);
         drawTableBorder(lowerLeftAngle, lowerRightAngle);
-
-        for (int i = 0; i < 3; i++) { // temporary
-            System.out.println();
-        }
-
+        printVertSpaces(4);
     }
 
     private void drawTableBorder(String leftPart, String rightAngle) {
@@ -137,23 +131,12 @@ public class Table {
         System.out.print(rightAngle);
     }
 
-    // private void drawTableBorder(String leftPart, String rightAngle, int customWidth) { // LOG
-    //     System.out.print(leftPart);
-    //     int totalWidth = (customWidth * customWidth - 1) + additionalBorderSpace;
-    //     for (int i = 0; i < totalWidth; i++) {
-    //         System.out.print(horBar);
-    //     }
-    //     System.out.print(rightAngle);
-    // }
-
-
     private void drawLetters() {
         int spacesBetweenLetters = cellSpaces / 2;
         drawSpaces(spacesBetweenLetters + additionalBorderSpace);
         for (int i = 0; i < letters.length; i++) {
             System.out.print(letters[i]);
             if (i != letters.length - 1) drawSpaces(boardLength - additionalBorderSpace);
-            //   else System.out.println();
         }
     }
 
@@ -169,7 +152,6 @@ public class Table {
         boolean isOnCursorRow = false;
         boolean isBlue = startColor;
         Field field = game.getField();
-
 
         System.out.print(vertBar);
         drawSpaces(addSpaceAmount);
@@ -189,8 +171,8 @@ public class Table {
             Coordinates currentCoords = new Coordinates(i, currentY);
             Cell currentCell = field.getCell(currentCoords);
             Coordinates lockedCoords = (game.isLocked()) ? game.getLockedFigureCoordinates() : null;
-            Coordinates prevLockedCoords = game.getPrevlockedFigureCoordinates();
-            Coordinates prevTargetCoords = game.getPrevtargetFigureCoordinates();
+            Coordinates prevLockedCoords = game.getPrevLockedFigureCoordinates();
+            Coordinates prevTargetCoords = game.getPrevTargetFigureCoordinates();
             Figure figure = currentCell.getFigure();
             List<Coordinates> figureMoves = (game.isLocked()) ? game.getCurrentAvailableMoves() : null;
             String bgColor;
@@ -198,7 +180,7 @@ public class Table {
             for (int j = 0; j < cellSpaces; ) { // j++ to replace
                 boolean flag = true;
 
-                if (!game.isBotGame()) {
+             //   if (!game.isBotGame()) {
                     if (isOnCursorRow && i == cursorCoordinateX) {
                         if (!game.isLocked()) {
                             bgColor = cursorColor;
@@ -226,13 +208,15 @@ public class Table {
                         bgColor = lockedCellColor;
                         isLockedCell = true;
                     }  else bgColor = (isBlue) ? fullBlockBlue : fullBlockWhite;
-                } else if (prevLockedCoords != null && prevLockedCoords.equals(currentCoords)) {
-                    bgColor = prevLockedCellColor;
-                    isPrevLockedCell = true;
-                }  else if (prevTargetCoords != null && prevTargetCoords.equals(currentCoords)) {
-                    bgColor = prevTargetCellColor;
-                    isPrevTargetCell = true;
-                } else bgColor = (isBlue) ? fullBlockBlue : fullBlockWhite;
+               // }
+//                else
+//                    if (prevLockedCoords != null && prevLockedCoords.equals(currentCoords)) {
+//                    bgColor = prevLockedCellColor;
+//                    isPrevLockedCell = true;
+//                }  else if (prevTargetCoords != null && prevTargetCoords.equals(currentCoords)) {
+//                    bgColor = prevTargetCellColor;
+//                    isPrevTargetCell = true;
+//                } else bgColor = (isBlue) ? fullBlockBlue : fullBlockWhite;
 
                 if (figure != null) {
                     if (cellSpaces - j == 7 || cellSpaces - j == 1) {
@@ -240,8 +224,9 @@ public class Table {
                     } else {
                         if (currentCellPart == CellParts.UPPER && figure.getType() == FigureType.PAWN) {
                             //  bgColor += " " + resetColor;
-                        } else if (!game.isBotGame()) {
-                            if (isCursorCell) {
+                        }
+                        //    if (!game.isBotGame()) {
+                         else if (isCursorCell) {
                                 bgColor = "\u001B[42m";
                             } else if (isLockedCell) {
                                 bgColor = "\u001b[45m";
@@ -254,11 +239,12 @@ public class Table {
                             } else if (isPrevLockedCell) {
                                 bgColor = "\u001B[48;5;217m";
                             } else bgColor = (isBlue) ? blueColor : BG_WHITE;
-                        } else if (isPrevTargetCell) {
-                            bgColor = "\u001B[48;5;215m";
-                        } else if (isPrevLockedCell) {
-                            bgColor = "\u001B[48;5;217m";
-                        } else bgColor = (isBlue) ? blueColor : BG_WHITE;
+                     //  }
+                     //  else if (isPrevTargetCell) {
+                     //      bgColor = "\u001B[48;5;215m";
+                     //  } else if (isPrevLockedCell) {
+                     //      bgColor = "\u001B[48;5;217m";
+                     //  } else bgColor = (isBlue) ? blueColor : BG_WHITE;
 
                         drawFigure(figure, currentCellPart, bgColor);
                         j += 5;
@@ -272,7 +258,7 @@ public class Table {
         }
         drawSpaces(addSpaceAmount);
         System.out.print(vertBar);
-        System.out.println();
+        printVertSpaces(1);
     }
 
     public void drawFigure(Figure figure, CellParts cellParts, String bgColor) { // to be implemented
@@ -342,22 +328,9 @@ public class Table {
     }
 
 
-    // private void drawContent(String move, boolean isLinePrinted, boolean isWhite) { // LOG
-    //     int addSpaceAmount = additionalBorderSpace / 2;
-    //     int internalWidth = (logBoardLength * logBoardLength - 1);
-    //     System.out.print(vertBar);
-    //     drawSpaces(addSpaceAmount);
-//
-    //     if (isLinePrinted) {
-    //         System.out.print(((isWhite) ? darkBlue : darkRed) + move + resetColor);
-    //         int spacesNeeded = internalWidth - move.length();
-    //         if (spacesNeeded > 0) {
-    //             drawSpaces(spacesNeeded);
-    //         }
-    //     } else {
-    //         drawSpaces(internalWidth);
-    //     }
-    //     drawSpaces(addSpaceAmount);
-    // }
-
+    private void printVertSpaces(int times) {
+        for (int i = 0; i < times; i++) {
+            System.out.println();
+        }
+    }
 }

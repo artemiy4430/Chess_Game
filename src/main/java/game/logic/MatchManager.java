@@ -26,10 +26,12 @@ public class MatchManager {
     private int turnCounter;
     private int whiteTurnPoints = 0;
     private int blackTurnPoints = 0;
+    public final int totalFigureScore = 39;
 
     public MatchManager(Field field) {
         this.field = field;
         this.stage = GameStage.START;
+        this.currentTurn = Color.WHITE;
         this.turnCounter = 0;
     }
 
@@ -237,15 +239,22 @@ public class MatchManager {
     }
 
     public Coordinates getKing(Color turn) {
+        Field currentField = this.field;
+        int size = currentField.getSize();
 
-        return IntStream.range(0, field.getSize())
-                .boxed()
-                .flatMap(i -> IntStream.range(0, field.getSize())
-                        .mapToObj(j -> new Coordinates(j, i)))
-                .filter(x -> field.getFigure(x) != null
-                        && field.getFigure(x).getColor() == turn && field.getFigure(x).getType() == FigureType.KING)
-                .findFirst()
-                .orElse(null);
+        for (int y = 0; y < size; y++) {
+            for (int x = 0; x < size; x++) {
+                Coordinates coord = new Coordinates(x, y);
+                Figure figure = currentField.getFigure(coord);
+
+                if (figure != null && figure.getColor() == turn && figure.getType() == FigureType.KING) {
+                    return coord;
+                }
+
+            }
+        }
+        return null;
+
     }
 
     public void isKingAttacked(Color turn) { // вызывается после совершенного хода проверяется противоположный цвет короля
@@ -433,48 +442,6 @@ public class MatchManager {
         return false;
     }
 
-//    private boolean isValidCastle(int rookX, Color turn) {
-//        if (this.isUnderCheck) return false;
-//        Coordinates kingCoordinates = getKing(turn);
-//
-//        if (kingCoordinates == null) return false;
-//        Coordinates rookCoordinates = new Coordinates(rookX, kingCoordinates.getCoordinateY());
-//
-//        Figure kingFigure = field.getFigure(kingCoordinates);
-//        Figure rookFigure = field.getFigure(rookCoordinates);
-//
-//        if (kingFigure == null || rookFigure == null) return false;
-//        if (kingFigure.getType() != FigureType.KING || kingFigure.getColor() != turn
-//                || rookFigure.getType() != FigureType.ROOK || rookFigure.getColor() != turn) return false;
-//        int kingX = kingCoordinates.getCoordinateX();
-//
-//        int kingY = kingCoordinates.getCoordinateY();
-//        int rookY = rookCoordinates.getCoordinateY();
-//
-//        if (kingY != rookY) return false;
-//        int distance = getDistanceWithKing(kingX, rookX);
-//        boolean isShortCastle = distance < 4;
-//        int max = ((isShortCastle) ? 2 : 3);
-//
-//        if (!kingFigure.isMoved() && !rookFigure.isMoved()) {
-//            for (int i = 1; i < max; i++) {
-//                int currentCoordinateX = (isShortCastle) ? kingX + i : kingX - i;
-//                Coordinates checkCoords = new Coordinates(currentCoordinateX, kingY);
-//
-//                if (!field.isWithinBoard(checkCoords) || field.getFigure(checkCoords) != null
-//                        || field.getCell(checkCoords).isAttacked()) return false;
-//            }
-//
-//            return true;
-//        }
-//
-//        return false;
-//    }
-
-//    public int getDistanceWithKing(int kingX, int coordinateX) {
-//        return Math.abs(kingX - coordinateX);
-//    }
-
     public Coordinates getCastlingRook(Coordinates kingTo, Color turn) {
         if (kingTo == null) return null;
         Coordinates kingCoordinates = getKing(turn);
@@ -486,13 +453,6 @@ public class MatchManager {
 
         return new Coordinates(rookX, kingCoordinates.getCoordinateY());
     }
-
-//    public void promoteFigure(Coordinates coords) { // for user (temporary)
-//        Figure figure = field.getFigure(coords);
-//        figure.promoteToQueen();
-//        //  isQueenPromoted = true; for move logging
-//    }
-
 
     public void promoteFigure(Coordinates coords, FigureType selectedType) { // for bot
         if (selectedType == null || coords == null) return;
@@ -552,7 +512,6 @@ public class MatchManager {
         int nonPawnMaterialWhite = calculateMaterial(activeFigures, Color.WHITE);
         int nonPawnMaterialBlack = calculateMaterial(activeFigures, Color.BLACK);
 
-        //    System.out.println(nonPawnMaterialWhite + " " + nonPawnMaterialBlack);
         if ((nonPawnMaterialBlack <= 1150 || nonPawnMaterialWhite <= 1150) && stage == GameStage.MIDGAME) {
             return GameStage.ENDGAME;
         }
@@ -579,57 +538,27 @@ public class MatchManager {
         return movedPiecesCount >= 3;
     }
 
-//    private boolean isEndGameMaterial(List<Figure> figures) {
-//        boolean whiteQueenPresent = figures.stream()
-//                .anyMatch(f -> f.getColor() == Color.WHITE && f.getType() == FigureType.QUEEN);
-//        boolean blackQueenPresent = figures.stream()
-//                .anyMatch(f -> f.getColor() == Color.BLACK && f.getType() == FigureType.QUEEN);
-//
-//        return !whiteQueenPresent && !blackQueenPresent;
-//    }
-
-
     public void setCurrMoveIsAttack(boolean currMoveIsAttack) {
         this.currMoveIsAttack = currMoveIsAttack;
     }
 
-    boolean consecutiveMovesUpdate() {
+    public boolean consecutiveMovesUpdate() {
         switch (this.currentTurn) {
-            case Color.WHITE:
-                this.consecutiveMovesWhite++;
-            case Color.BLACK:
-                this.consecutiveMovesBlack++;
+            case Color.WHITE -> this.consecutiveMovesWhite++;
+            case Color.BLACK -> this.consecutiveMovesBlack++;
         }
+
         return this.consecutiveMovesWhite >= 7 && this.consecutiveMovesBlack >= 7;
     }
 
     public void consecutiveMovesReset(Color turn) {
         if (turn == Color.WHITE) {
             setConsecutiveMovesWhite(0);
-        } else setConsecutiveMovesBlack(0);
-    }
-
-    public void incrementPoints(Figure capturedFigure) {
-        if (currentTurn == Color.WHITE) {
-            whiteTurnPoints += (capturedFigure != null) ? capturedFigure.getPrice() : 1;
+            setPrevCheckerUsedWhite(null);
         } else {
-            blackTurnPoints += (capturedFigure != null) ? capturedFigure.getPrice() : 1;
+            setConsecutiveMovesBlack(0);
+            setPrevCheckerUsedBlack(null);
         }
-    }
-
-
-    public List<Coordinates> getAllAvailableAttackMoves(Color turn) {
-        List<Coordinates> figures = IntStream.range(0, field.getSize())
-                .boxed()
-                .flatMap(i -> IntStream.range(0, field.getSize())
-                        .mapToObj(j -> new Coordinates(j, i)))
-                .filter(x -> field.getFigure(x) != null && field.getFigure(x).getColor() == turn)
-                .toList();
-
-        return figures.stream()
-                .flatMap(coordinates -> getMovementType(field.getFigure(coordinates))
-                        .getAvailableMoves(coordinates).stream())
-                .filter(Coordinates::isAttackCoordinate).toList();
     }
 
     public Color getCurrentTurn() {
@@ -680,9 +609,24 @@ public class MatchManager {
         return false;
     }
 
+    public int getTotalScore(Color turn) {
+        return totalFigureScore - getTotalFigureScore(getOppositeColor(turn));
+    }
+
+    private int getTotalFigureScore(Color turn) {
+
+        return IntStream.range(0, field.getSize())
+                .boxed()
+                .flatMap(i -> IntStream.range(0, field.getSize())
+                        .mapToObj(j -> field.getFigure(new Coordinates(j, i))))
+                .filter(f -> f != null && f.getColor() == turn)
+                .mapToInt(Figure::getPrice).sum();
+    }
+
     public void setCurrentTurn(Color currentTurn) {
         this.currentTurn = currentTurn;
     }
+
 
     public boolean isTie() {
         return isTie;
@@ -773,6 +717,9 @@ public class MatchManager {
         return blackTurnPoints;
     }
 
+    public int getTotalFigureScore() {
+        return totalFigureScore;
+    }
 
     public void setWhiteTurnPoints(int whiteTurnPoints) {
         this.whiteTurnPoints = whiteTurnPoints;
@@ -781,6 +728,4 @@ public class MatchManager {
     public void setBlackTurnPoints(int blackTurnPoints) {
         this.blackTurnPoints = blackTurnPoints;
     }
-
-
 }

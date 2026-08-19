@@ -17,11 +17,14 @@ public class Field {
 
     public Field() {
         this.size = 8;
-        generate();
-        // customFigureSet();
+       // generate();
+       customFigureSet();
     }
 
+
     public Field(final Field f) {
+
+
         this.size = f.size;
         this.board = new ArrayList<>();
 
@@ -175,8 +178,11 @@ public class Field {
 
     private void customFigureSet() {
         fillWithCells();
-        generate();
-        setFigure(new Coordinates(5, 6), new Coordinates(5, 4));
+        // generate();
+        setFigure(new Figure(Color.WHITE, FigureType.KING), new Coordinates(6, 5));
+        setFigure(new Figure(Color.BLACK, FigureType.KING), new Coordinates(6, 1));
+        setFigure(new Figure(Color.BLACK, FigureType.ROOK), new Coordinates(1, 1));
+        setFigure(new Figure(Color.BLACK, FigureType.ROOK), new Coordinates(3, 1));
     }
 
     private void assignFigure(Coordinates coordinates) {
