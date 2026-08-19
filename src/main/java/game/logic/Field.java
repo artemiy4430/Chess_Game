@@ -17,8 +17,7 @@ public class Field {
 
     public Field() {
         this.size = 8;
-       // generate();
-       customFigureSet();
+        generate();
     }
 
 
@@ -131,37 +130,6 @@ public class Field {
             cell.setFigure(null);
         }
     }
-//    public void setFigure(Coordinates oldCoordinates, Coordinates newCoordinates) {
-//        Figure figure = getFigure(oldCoordinates);
-//
-//        if (!isWithinBoard(newCoordinates) || figure == null) return;
-//        Cell newCell = getCell(newCoordinates);
-//        Cell currentCell = getCell(oldCoordinates);
-//
-//        if (newCell.getFigure() == null) {
-//            newCell.setFigure(figure);
-//            currentCell.setFigure(null);
-//        }
-//    }
-//
-//    public void setFigure(Figure figure, Coordinates newCoordinates) { // overloading
-//        if (!isWithinBoard(newCoordinates) || figure == null) return;
-//        Cell newCell = getCell(newCoordinates);
-//
-//        if (newCell.getFigure() == null) {
-//            newCell.setFigure(figure);
-//        }
-//    }
-//
-//
-//    public void removeFigure(Coordinates coordinates) {
-//        Cell cell = getCell(coordinates);
-//        Figure figure = cell.getFigure();
-//
-//        if (figure != null) {
-//            cell.setFigure(null);
-//        }
-//    }
 
     private void generate() {
         fillWithCells();
@@ -176,14 +144,10 @@ public class Field {
                         }));
     }
 
-    private void customFigureSet() {
-        fillWithCells();
-        // generate();
-        setFigure(new Figure(Color.WHITE, FigureType.KING), new Coordinates(6, 5));
-        setFigure(new Figure(Color.BLACK, FigureType.KING), new Coordinates(6, 1));
-        setFigure(new Figure(Color.BLACK, FigureType.ROOK), new Coordinates(1, 1));
-        setFigure(new Figure(Color.BLACK, FigureType.ROOK), new Coordinates(3, 1));
-    }
+  //  private void customFigureSet() { // for tests
+  //      fillWithCells();
+  //      // generate();
+  //  }
 
     private void assignFigure(Coordinates coordinates) {
         int coordinateY = coordinates.getCoordinateY();
@@ -235,20 +199,5 @@ public class Field {
         getFigure(coordinates).setLastMoved(true);
     }
 
-    public boolean isBothRookOnBoard(Color turn) {
-        return IntStream.range(0, size)
-                .boxed()
-                .flatMap(i -> IntStream.range(0, size)
-                        .mapToObj(j -> new Coordinates(j, i)))
-                .map(coordinates -> {
-                    Figure figure = getFigure(coordinates);
-
-                    if (figure != null && figure.getColor() == turn && figure.getType() == FigureType.ROOK)
-                        return figure;
-
-                    return null;
-                })
-                .filter(Objects::nonNull).count() == 2;
-    }
 
 }
